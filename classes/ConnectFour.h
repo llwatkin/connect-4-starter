@@ -40,6 +40,7 @@ private:
     // Helper methods
     Bit*        createPiece(int pieceType);     
     int         findLowestOpenSquareY(int x);
+    bool        ownersAreTheSame(Player *owner1, Player *owner2, Player *owner3, Player *owner4);
     Player*     ownerAt(int x, int y);
 
     // Board representation

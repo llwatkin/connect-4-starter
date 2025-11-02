@@ -55,20 +55,103 @@ void ConnectFour::setUpBoard()
 
     startGame();
 }
-    
+
+bool ConnectFour::ownersAreTheSame(Player *owner1, Player *owner2, Player *owner3, Player *owner4)
+{
+    Logger &logger = Logger::GetInstance();
+
+    if (owner1 && owner2 && owner3 && owner4)
+    {
+        if (owner1 == owner2 && owner2 == owner3 && owner3 == owner4)
+        {
+            logger.Event("Player " + std::to_string(owner1->playerNumber()) + " won the game");
+            _gameOptions.gameOver = true;
+            return true;
+        }   
+    }
+
+    return false;
+}
+
+//
+// Check all possible win conditions and return the winning player if there is one
+//
 Player* ConnectFour::checkForWinner() 
 {
-    // Iterate through the board spaces
-    // For each space, check backwards and forwards for four of the same pieces in a row
-    // Also check the up diagonal and down diagonal
+    Player *owner1 = nullptr;
+    Player *owner2 = nullptr;
+    Player *owner3 = nullptr;
+    Player *owner4 = nullptr;
+
+    // Check for winner by looking through 4x4 boxes
+    for (int rowX = 0; rowX < ROWX - 3; rowX++)
+    {
+        for (int rowY = 0; rowY < ROWY - 3; rowY++)
+        {
+            // Check top line
+            owner1 = ownerAt(rowX, rowY);
+            owner2 = ownerAt(rowX + 1, rowY);
+            owner3 = ownerAt(rowX + 2, rowY);
+            owner4 = ownerAt(rowX + 3, rowY);
+            if (ownersAreTheSame(owner1, owner2, owner3, owner4)) return owner1;
+
+            // Check left line
+            owner1 = ownerAt(rowX, rowY);
+            owner2 = ownerAt(rowX, rowY + 1);
+            owner3 = ownerAt(rowX, rowY + 2);
+            owner4 = ownerAt(rowX, rowY + 3);
+            if (ownersAreTheSame(owner1, owner2, owner3, owner4)) return owner1;
+
+            // Check down diagonal
+            owner1 = ownerAt(rowX, rowY);
+            owner2 = ownerAt(rowX + 1, rowY + 1);
+            owner3 = ownerAt(rowX + 2, rowY + 2);
+            owner4 = ownerAt(rowX + 3, rowY + 3);
+            if (ownersAreTheSame(owner1, owner2, owner3, owner4)) return owner1;
+
+            // Check bottom line
+            owner1 = ownerAt(rowX, rowY + 3);
+            owner2 = ownerAt(rowX + 1, rowY + 3);
+            owner3 = ownerAt(rowX + 2, rowY + 3);
+            owner4 = ownerAt(rowX + 3, rowY + 3);
+            if (ownersAreTheSame(owner1, owner2, owner3, owner4)) return owner1;
+
+            // Check right line
+            owner1 = ownerAt(rowX + 3, rowY);
+            owner2 = ownerAt(rowX + 3, rowY + 1);
+            owner3 = ownerAt(rowX + 3, rowY + 2);
+            owner4 = ownerAt(rowX + 3, rowY + 3);
+            if (ownersAreTheSame(owner1, owner2, owner3, owner4)) return owner1;
+            
+            // Check up diagonal
+            owner1 = ownerAt(rowX, rowY + 3);
+            owner2 = ownerAt(rowX + 1, rowY + 2);
+            owner3 = ownerAt(rowX + 2, rowY + 1);
+            owner4 = ownerAt(rowX + 3, rowY);
+            if (ownersAreTheSame(owner1, owner2, owner3, owner4)) return owner1;
+        }
+    }
     return nullptr;
 }
 
+//
+// Return true if the board is full and false otherwise
+//
 bool ConnectFour::checkForDraw()
 {
-    // Iterate through grid
-    // If any spot is open, there is no draw
-    return false;
+    Logger &logger = Logger::GetInstance();
+
+    for (int rowX = 0; rowX < ROWX; rowX++)
+    {
+        for (int rowY = 0; rowY < ROWY; rowY++)
+        {
+            if (!_grid->getSquare(rowX, rowY)->bit()) return false;
+        }
+    }
+
+    logger.Event("The game ended in a draw");
+    _gameOptions.gameOver = true;
+    return true;
 }
 
 std::string ConnectFour::initialStateString()
@@ -76,14 +159,33 @@ std::string ConnectFour::initialStateString()
 	return "000000000000000000000000000000000000000000";
 }
 
+//
+// Convert the current game state to a 42-character state string representing each piece on the board
+//
 std::string ConnectFour::stateString() 
 {
-    return "000000000000000000000000000000000000000000";
+    std::string gameState = "000000000000000000000000000000000000000000";
+    int stateIndex = 0;
+
+    for (int rowX = 0; rowX < ROWX; rowX++)
+    {
+        for (int rowY = 0; rowY < ROWY; rowY++)
+        {
+            Bit *bit = _grid->getSquare(rowX, rowY)->bit();
+            if (bit) gameState[stateIndex] = '1' + bit->getOwner()->playerNumber();
+            stateIndex++;
+        }
+    }
+
+    return gameState;
 }
 
+//
+// Return the board to the state described by the state string
+//
 void ConnectFour::setStateString(const std::string &s)
 {
-    // Return the board to the state described by the state string
+    // TODO
 }
 
 //
@@ -91,12 +193,12 @@ void ConnectFour::setStateString(const std::string &s)
 //
 bool ConnectFour::actionForEmptyHolder(BitHolder &holder)
 {
-    // Place a token for the current player at the bottommost spot in the column they click in
+    if (_gameOptions.gameOver) return false;
     if (holder.bit()) return false;
     ChessSquare *clickedSquare = dynamic_cast<ChessSquare*>(&holder);
     if (!clickedSquare) return false;
 
-    // Place a piece for the current player at this lowest square
+    // Place a piece for the current player at the lowest open square in that column
     int currentPlayerIndex = getCurrentPlayer()->playerNumber();
     Bit *bit = createPiece(currentPlayerIndex == 0 ? HUMAN_PLAYER : AI_PLAYER);
     
@@ -211,12 +313,12 @@ std::string ConnectFour::getBestMove()
 {
     std::string gameState = stateString();
     std::vector<std::string> moves = generateMoves(gameState, AI_PLAYER);
-    std::string bestMove = "000000000";
+    std::string bestMove = initialStateString();
     int bestEvaluation = -2;
 
     for (auto const & move : moves) 
     {
-        int evaluation = -negamax(move, 9, HUMAN_PLAYER);
+        int evaluation = -negamax(move, 12, HUMAN_PLAYER);
 
         Logger &logger = Logger::GetInstance();
         logger.Info("Checking move: " + move + " Evaluation: " + std::to_string(evaluation));
