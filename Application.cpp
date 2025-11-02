@@ -3,6 +3,7 @@
 #include "classes/TicTacToe.h"
 #include "classes/Checkers.h"
 #include "classes/Othello.h"
+#include "classes/ConnectFour.h"
 
 namespace ClassGame {
         //
@@ -29,7 +30,16 @@ namespace ClassGame {
         {
                 ImGui::DockSpaceOverViewport();
 
-                //ImGui::ShowDemoWindow();
+                // Debug window
+                Logger &logger = Logger::GetInstance();
+                ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
+                ImGui::Begin("Debug Log");
+                if (ImGui::Button("Save")) logger.ToFile();
+                ImGui::SameLine();
+                if (ImGui::Button("Clear")) logger.Clear();
+                // Draw all log messages
+                logger.Draw("Debug Log");
+                ImGui::End();
 
                 ImGui::Begin("Settings");
 
@@ -54,6 +64,10 @@ namespace ClassGame {
                     }
                     if (ImGui::Button("Start Othello")) {
                         game = new Othello();
+                        game->setUpBoard();
+                    }
+                    if (ImGui::Button("Start Connect Four")) {
+                        game = new ConnectFour();
                         game->setUpBoard();
                     }
                 } else {

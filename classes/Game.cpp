@@ -6,6 +6,7 @@
 
 Game::Game()
 {
+	_gameOptions.gameOver = false;
 	_gameOptions.AIPlayer = false;
 	_gameOptions.AIPlaying = false;
 	_gameOptions.currentTurnNo = 0;
@@ -58,7 +59,7 @@ void Game::setNumberOfPlayers(unsigned int n)
 		Player *player = Player::initWithGame(this);
 		//		player->setName( std::format( "Player-{}", i ) );
 		player->setName("Player");
-		player->setPlayerNumber(i - 1); // player numbers are zero-based
+		player->setPlayerNumber(i - 1); // Player numbers are 1 based
 		_players.push_back(player);
 	}
 	_winner = nullptr;
@@ -229,7 +230,7 @@ bool Game::actionForEmptyHolder(BitHolder &holder)
 
 bool Game::clickedBit(Bit &bit)
 {
-	return true;
+	return false;
 }
 
 bool Game::animateAndPlaceBitFromTo(Bit &bit, BitHolder &src, BitHolder &dst)

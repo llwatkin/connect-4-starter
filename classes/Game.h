@@ -22,7 +22,7 @@
 #include "Bit.h"
 #include "BitHolder.h"
 #include "Grid.h"
-
+#include "Logger.h"
 
 const int AI_PLAYER = 1;
 const int HUMAN_PLAYER = -1;
@@ -31,6 +31,7 @@ class GameTable;
 
 struct GameOptions
 {
+	bool gameOver;
 	bool AIPlaying;
 	int numberOfPlayers;
 	int AIPlayer;
