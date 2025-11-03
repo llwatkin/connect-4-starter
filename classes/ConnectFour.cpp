@@ -47,6 +47,18 @@ int ConnectFour::findLowestOpenSquareY(int x)
     return lowestY;
 }
 
+int ConnectFour::findLowestOpenSquareYByGameState(std::string gameState, int x)
+{
+    int lowestY = 0;
+    
+    while (lowestY < ROWY - 1) {
+        lowestY++;
+        if (gameState[coordsToStateIndex(x, lowestY)] != '0') return lowestY - 1;
+    }
+
+    return lowestY;
+}
+
 void ConnectFour::setUpBoard()
 {
     setNumberOfPlayers(2);
@@ -266,16 +278,18 @@ std::vector<std::string> ConnectFour::generateMoves(std::string gameState, int p
 {
 	// Return state strings for every possible move from the current player's perspective
     std::vector<std::string> moves;
+    logger.Info("Generating moves from gameState " + gameState + " for Player " + std::to_string(playerNumber));
 
     for (int rowX = 0; rowX < ROWX; rowX++)
     {
         if (gameState[coordsToStateIndex(rowX, 0)] == '0')
         {
-            int lowestY = findLowestOpenSquareY(rowX);
+            int lowestY = findLowestOpenSquareYByGameState(gameState, rowX);
             std::string move = gameState;
             int moveIndex = coordsToStateIndex(rowX, lowestY);
             move[moveIndex] = '1' + playerNumber;
             moves.push_back(move);
+            logger.Warn("Possible move for Player " + std::to_string(playerNumber) + ": " + move);
         }
     }
     
@@ -349,8 +363,88 @@ Player* ConnectFour::checkForWinnerWithGameState(std::string gameState)
     return nullptr;
 }
 
+int ConnectFour::scoreOfLine(const int *owners, int playerNumber)
+{
+    int score = 0;
+
+    for (size_t i = 0; i < 4; i++)
+    {
+        if (owners[i] == playerNumber) score++;
+        else if (owners[i] != 0 && owners[i] != playerNumber)
+        {
+            score = 0;
+            break;
+        }
+    }
+    if (score == 1) score = 0;
+    if (score == 3) score *= 5;
+
+    return score;
+}
+
 //
-// Return the value of a move depending on who wins the game (1 if player wins, -1 if opponent wins, 0 if draw)
+// Returns a score for uncompleted rows from a given player's perspective
+//
+int ConnectFour::calculateScore(std::string gameState, int playerNumber)
+{
+    int owners[4] = { 0, 0, 0, 0 };
+
+    int score = 0;
+
+    // Check for winner by looking through 4x4 boxes
+    for (int rowX = 0; rowX < ROWX - 3; rowX++)
+    {
+        for (int rowY = 0; rowY < ROWY - 3; rowY++)
+        {
+            // Check top line
+            owners[0] = gameState[coordsToStateIndex(rowX, rowY)] - '0';
+            owners[1] = gameState[coordsToStateIndex(rowX + 1, rowY)] - '0';
+            owners[2] = gameState[coordsToStateIndex(rowX + 2, rowY)] - '0';
+            owners[3] = gameState[coordsToStateIndex(rowX + 3, rowY)] - '0';
+            score += scoreOfLine(owners, playerNumber + 1); // Must add one because owners are 1 or 2
+
+            // Check left line
+            owners[0] = gameState[coordsToStateIndex(rowX, rowY)] - '0';
+            owners[1] = gameState[coordsToStateIndex(rowX, rowY + 1)] - '0';
+            owners[2] = gameState[coordsToStateIndex(rowX, rowY + 2)] - '0';
+            owners[3] = gameState[coordsToStateIndex(rowX, rowY + 3)] - '0';
+            score += scoreOfLine(owners, playerNumber + 1);
+
+            // Check down diagonal
+            owners[0] = gameState[coordsToStateIndex(rowX, rowY)] - '0';
+            owners[1] = gameState[coordsToStateIndex(rowX + 1, rowY + 1)] - '0';
+            owners[2] = gameState[coordsToStateIndex(rowX + 2, rowY + 2)] - '0';
+            owners[3] = gameState[coordsToStateIndex(rowX + 3, rowY + 3)] - '0';
+            score += scoreOfLine(owners, playerNumber + 1);
+
+            // Check bottom line
+            owners[0] = gameState[coordsToStateIndex(rowX, rowY + 3)] - '0';
+            owners[1] = gameState[coordsToStateIndex(rowX + 1, rowY + 3)] - '0';
+            owners[2] = gameState[coordsToStateIndex(rowX + 2, rowY + 3)] - '0';
+            owners[3] = gameState[coordsToStateIndex(rowX + 3, rowY + 3)] - '0';
+            score += scoreOfLine(owners, playerNumber + 1);
+
+            // Check right line
+            owners[0] = gameState[coordsToStateIndex(rowX + 3, rowY)] - '0';
+            owners[1] = gameState[coordsToStateIndex(rowX + 3, rowY + 1)] - '0';
+            owners[2] = gameState[coordsToStateIndex(rowX + 3, rowY + 2)] - '0';
+            owners[3] = gameState[coordsToStateIndex(rowX + 3, rowY + 3)] - '0';
+            score += scoreOfLine(owners, playerNumber + 1);
+            
+            // Check up diagonal
+            owners[0] = gameState[coordsToStateIndex(rowX, rowY + 3)] - '0';
+            owners[1] = gameState[coordsToStateIndex(rowX + 1, rowY + 2)] - '0';
+            owners[2] = gameState[coordsToStateIndex(rowX + 2, rowY + 1)] - '0';
+            owners[3] = gameState[coordsToStateIndex(rowX + 3, rowY)] - '0';
+            score += scoreOfLine(owners, playerNumber + 1);
+        }
+    }
+
+    return score;
+}
+
+//
+// Return the value of a move
 //
 int ConnectFour::evaluate(std::string gameState, int playerNumber)
 {
@@ -358,26 +452,43 @@ int ConnectFour::evaluate(std::string gameState, int playerNumber)
 
     if (winner)
     {
+        logger.Info("Player " + std::to_string(winner->playerNumber()) + " wins in gameState " + gameState);
         int winnerNumber = winner->playerNumber();
-        if (winnerNumber == playerNumber) return 1;
-        else return -1;
+        if (winnerNumber == playerNumber) return MAX_VALUE;
+        else return -MAX_VALUE;
     }
+
+    int score = 0;
+    int opponentNumber = playerNumber == 0 ? 1 : 0;
+    score += calculateScore(gameState, playerNumber);
+    score -= calculateScore(gameState, opponentNumber);
 	
-    return 0;
+    //logger.Info("Calculated score of " + std::to_string(score));
+    return score;
 }
 
 //
 // Find the most optimal move by evaluating possible games stemming from that move
 //
-int ConnectFour::negamax(std::string gameState, int depth, int playerNumber)
+int ConnectFour::negamax(std::string gameState, int depth, int playerNumber, int alpha, int beta)
 {
-	if (depth == 0 || checkForWinnerWithGameState(gameState)) return evaluate(gameState, playerNumber);
+	if (depth == 0 || checkForWinnerWithGameState(gameState)) 
+    {
+        int eval = evaluate(gameState, playerNumber);
+        logger.Info("Reached end of negamax with gameState " + gameState + ". Evaluation = " + std::to_string(eval));
+        return eval;
+    }
     std::vector<std::string> moves = generateMoves(gameState, playerNumber);
-    if (moves.empty()) return 0;
+    //if (moves.empty()) return 0;
 
-    int value = -2;
+    int value = -MAX_VALUE;
     int nextPlayer = playerNumber == 0 ? 1 : 0;
-    for (auto const & move : moves) value = std::max(value, -negamax(move, depth - 1, nextPlayer));
+    for (auto const & move : moves)
+    {
+        value = std::max(value, -negamax(move, depth - 1, nextPlayer, -beta, -alpha));
+        alpha = std::max(alpha, value);
+        if (alpha >= beta) break;
+    }
     return value;
 }
 
@@ -388,13 +499,13 @@ std::string ConnectFour::getBestMove()
 {
     std::string gameState = stateString();
     std::vector<std::string> moves = generateMoves(gameState, AI_PLAYER);
-    std::string bestMove = moves.at(0);
-    int bestEvaluation = -2;
+    std::string bestMove = "";
+    int bestEvaluation = -MAX_VALUE;
 
     for (auto const & move : moves) 
     {
-        int evaluation = -negamax(move, 3, HUMAN_PLAYER);
-        //logger.Info("Checking move: " + move + " Evaluation: " + std::to_string(evaluation));
+        int evaluation = -negamax(move, 1, HUMAN_PLAYER, -MAX_VALUE, MAX_VALUE);
+        logger.Event("Checking move: " + move + " Evaluation: " + std::to_string(evaluation));
 
         if (evaluation > bestEvaluation) 
         {
