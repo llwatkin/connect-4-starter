@@ -307,42 +307,42 @@ Player* ConnectFour::checkForWinnerWithGameState(std::string gameState)
             owner2 = gameState[coordsToStateIndex(rowX + 1, rowY)] - '0';
             owner3 = gameState[coordsToStateIndex(rowX + 2, rowY)] - '0';
             owner4 = gameState[coordsToStateIndex(rowX + 3, rowY)] - '0';
-            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) getPlayerAt(owner1 - 1);
+            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) return getPlayerAt(owner1 - 1);
 
             // Check left line
             owner1 = gameState[coordsToStateIndex(rowX, rowY)] - '0';
             owner2 = gameState[coordsToStateIndex(rowX, rowY + 1)] - '0';
             owner3 = gameState[coordsToStateIndex(rowX, rowY + 2)] - '0';
             owner4 = gameState[coordsToStateIndex(rowX, rowY + 3)] - '0';
-            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) getPlayerAt(owner1 - 1);
+            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) return getPlayerAt(owner1 - 1);
 
             // Check down diagonal
             owner1 = gameState[coordsToStateIndex(rowX, rowY)] - '0';
             owner2 = gameState[coordsToStateIndex(rowX + 1, rowY + 1)] - '0';
             owner3 = gameState[coordsToStateIndex(rowX + 2, rowY + 2)] - '0';
             owner4 = gameState[coordsToStateIndex(rowX + 3, rowY + 3)] - '0';
-            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) getPlayerAt(owner1 - 1);
+            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) return getPlayerAt(owner1 - 1);
 
             // Check bottom line
             owner1 = gameState[coordsToStateIndex(rowX, rowY + 3)] - '0';
             owner2 = gameState[coordsToStateIndex(rowX + 1, rowY + 3)] - '0';
             owner3 = gameState[coordsToStateIndex(rowX + 2, rowY + 3)] - '0';
             owner4 = gameState[coordsToStateIndex(rowX + 3, rowY + 3)] - '0';
-            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) getPlayerAt(owner1 - 1);
+            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) return getPlayerAt(owner1 - 1);
 
             // Check right line
             owner1 = gameState[coordsToStateIndex(rowX + 3, rowY)] - '0';
             owner2 = gameState[coordsToStateIndex(rowX + 3, rowY + 1)] - '0';
             owner3 = gameState[coordsToStateIndex(rowX + 3, rowY + 2)] - '0';
             owner4 = gameState[coordsToStateIndex(rowX + 3, rowY + 3)] - '0';
-            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) getPlayerAt(owner1 - 1);
+            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) return getPlayerAt(owner1 - 1);
             
             // Check up diagonal
             owner1 = gameState[coordsToStateIndex(rowX, rowY + 3)] - '0';
             owner2 = gameState[coordsToStateIndex(rowX + 1, rowY + 2)] - '0';
             owner3 = gameState[coordsToStateIndex(rowX + 2, rowY + 1)] - '0';
             owner4 = gameState[coordsToStateIndex(rowX + 3, rowY)] - '0';
-            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) getPlayerAt(owner1 - 1);
+            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) return getPlayerAt(owner1 - 1);
         }
     }
 
