@@ -27,7 +27,7 @@ public:
     int         negamax(std::string gameState, int depth, int playerNumber);
     std::string getBestMove();
     void        updateAI() override;
-    bool        gameHasAI() override { return false; } // Set to true when AI is implemented
+    bool        gameHasAI() override { return true; } // Set to true when AI is implemented
     Grid* getGrid() override { return _grid; }
 
 private:
@@ -40,7 +40,9 @@ private:
     // Helper methods
     Bit*        createPiece(int pieceType);     
     int         findLowestOpenSquareY(int x);
+    int         coordsToStateIndex(int x, int y);
     bool        ownersAreTheSame(Player *owner1, Player *owner2, Player *owner3, Player *owner4);
+    bool        ownerNumbersAreTheSame(int owner1, int owner2, int owner3, int owner4);
     Player*     ownerAt(int x, int y);
 
     // Board representation

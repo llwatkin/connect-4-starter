@@ -9,6 +9,7 @@ namespace ClassGame {
         //
         // our global variables
         //
+        Logger &logger = Logger::GetInstance();
         Game *game = nullptr;
         bool gameOver = false;
         int gameWinner = -1;
@@ -31,7 +32,6 @@ namespace ClassGame {
                 ImGui::DockSpaceOverViewport();
 
                 // Debug window
-                Logger &logger = Logger::GetInstance();
                 ImGui::SetNextWindowSize(ImVec2(600, 400), ImGuiCond_FirstUseEver);
                 ImGui::Begin("Debug Log");
                 if (ImGui::Button("Save")) logger.ToFile();

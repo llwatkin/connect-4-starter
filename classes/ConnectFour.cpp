@@ -1,4 +1,7 @@
 #include "ConnectFour.h"
+#include "Logger.h"
+
+Logger &logger = Logger::GetInstance();
 
 ConnectFour::ConnectFour()
 {
@@ -51,15 +54,13 @@ void ConnectFour::setUpBoard()
     _gameOptions.rowY = 6;
     _grid->initializeSquares(80, "square.png");
 
-    //if (gameHasAI()) setAIPlayer(RED_PLAYER); // AI will play second
+    if (gameHasAI()) setAIPlayer(RED_PLAYER); // AI will play second
 
     startGame();
 }
 
 bool ConnectFour::ownersAreTheSame(Player *owner1, Player *owner2, Player *owner3, Player *owner4)
 {
-    Logger &logger = Logger::GetInstance();
-
     if (owner1 && owner2 && owner3 && owner4)
     {
         if (owner1 == owner2 && owner2 == owner3 && owner3 == owner4)
@@ -68,6 +69,19 @@ bool ConnectFour::ownersAreTheSame(Player *owner1, Player *owner2, Player *owner
             _gameOptions.gameOver = true;
             return true;
         }   
+    }
+
+    return false;
+}
+
+bool ConnectFour::ownerNumbersAreTheSame(int owner1, int owner2, int owner3, int owner4)
+{
+    if (owner1 != 0 && owner2 != 0 && owner3 != 0 && owner4 != 0)
+    {
+        if (owner1 == owner2 && owner2 == owner3 && owner3 == owner4) 
+        {
+            return true;
+        }
     }
 
     return false;
@@ -131,6 +145,7 @@ Player* ConnectFour::checkForWinner()
             if (ownersAreTheSame(owner1, owner2, owner3, owner4)) return owner1;
         }
     }
+
     return nullptr;
 }
 
@@ -139,8 +154,6 @@ Player* ConnectFour::checkForWinner()
 //
 bool ConnectFour::checkForDraw()
 {
-    Logger &logger = Logger::GetInstance();
-
     for (int rowX = 0; rowX < ROWX; rowX++)
     {
         for (int rowY = 0; rowY < ROWY; rowY++)
@@ -164,7 +177,7 @@ std::string ConnectFour::initialStateString()
 //
 std::string ConnectFour::stateString() 
 {
-    std::string gameState = "000000000000000000000000000000000000000000";
+    std::string gameState = initialStateString();
     int stateIndex = 0;
 
     for (int rowX = 0; rowX < ROWX; rowX++)
@@ -194,7 +207,10 @@ void ConnectFour::setStateString(const std::string &s)
 bool ConnectFour::actionForEmptyHolder(BitHolder &holder)
 {
     if (_gameOptions.gameOver) return false;
-    if (holder.bit()) return false;
+    if (holder.bit()) {
+        logger.Error("Holder already has a bit in it");
+        return false;
+    }
     ChessSquare *clickedSquare = dynamic_cast<ChessSquare*>(&holder);
     if (!clickedSquare) return false;
 
@@ -210,9 +226,7 @@ bool ConnectFour::actionForEmptyHolder(BitHolder &holder)
         ImVec2 pos = lowestSquareDown->getPosition();
         bit->setPosition(pos);
 
-        Logger &logger = Logger::GetInstance();
         logger.Event("Player " + std::to_string(currentPlayerIndex) + " placed a piece at (" + std::to_string(rowX) + ", " + std::to_string(rowY) + ")");
-
         endTurn();
         return true;
     }   
@@ -253,12 +267,14 @@ std::vector<std::string> ConnectFour::generateMoves(std::string gameState, int p
 	// Return state strings for every possible move from the current player's perspective
     std::vector<std::string> moves;
 
-    for (size_t i = 0; i < gameState.length(); i++)
+    for (int rowX = 0; rowX < ROWX; rowX++)
     {
-        if (gameState[i] == '0') // TODO: make sure to get the lowest Y for this X
+        if (gameState[coordsToStateIndex(rowX, 0)] == '0')
         {
+            int lowestY = findLowestOpenSquareY(rowX);
             std::string move = gameState;
-            move[i] = '1' + playerNumber;
+            int moveIndex = coordsToStateIndex(rowX, lowestY);
+            move[moveIndex] = '1' + playerNumber;
             moves.push_back(move);
         }
     }
@@ -266,11 +282,70 @@ std::vector<std::string> ConnectFour::generateMoves(std::string gameState, int p
     return moves;
 }
 
+int ConnectFour::coordsToStateIndex(int x, int y)
+{
+    return x * ROWY + y;
+}
+
 //
 // A win-checking function that uses the string game state rather than the current board (used for AI decision-making)
 //
 Player* ConnectFour::checkForWinnerWithGameState(std::string gameState)
 {
+    int owner1 = 0;
+    int owner2 = 0;
+    int owner3 = 0;
+    int owner4 = 0;
+
+    // Check for winner by looking through 4x4 boxes
+    for (int rowX = 0; rowX < ROWX - 3; rowX++)
+    {
+        for (int rowY = 0; rowY < ROWY - 3; rowY++)
+        {
+            // Check top line
+            owner1 = gameState[coordsToStateIndex(rowX, rowY)] - '0';
+            owner2 = gameState[coordsToStateIndex(rowX + 1, rowY)] - '0';
+            owner3 = gameState[coordsToStateIndex(rowX + 2, rowY)] - '0';
+            owner4 = gameState[coordsToStateIndex(rowX + 3, rowY)] - '0';
+            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) getPlayerAt(owner1 - 1);
+
+            // Check left line
+            owner1 = gameState[coordsToStateIndex(rowX, rowY)] - '0';
+            owner2 = gameState[coordsToStateIndex(rowX, rowY + 1)] - '0';
+            owner3 = gameState[coordsToStateIndex(rowX, rowY + 2)] - '0';
+            owner4 = gameState[coordsToStateIndex(rowX, rowY + 3)] - '0';
+            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) getPlayerAt(owner1 - 1);
+
+            // Check down diagonal
+            owner1 = gameState[coordsToStateIndex(rowX, rowY)] - '0';
+            owner2 = gameState[coordsToStateIndex(rowX + 1, rowY + 1)] - '0';
+            owner3 = gameState[coordsToStateIndex(rowX + 2, rowY + 2)] - '0';
+            owner4 = gameState[coordsToStateIndex(rowX + 3, rowY + 3)] - '0';
+            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) getPlayerAt(owner1 - 1);
+
+            // Check bottom line
+            owner1 = gameState[coordsToStateIndex(rowX, rowY + 3)] - '0';
+            owner2 = gameState[coordsToStateIndex(rowX + 1, rowY + 3)] - '0';
+            owner3 = gameState[coordsToStateIndex(rowX + 2, rowY + 3)] - '0';
+            owner4 = gameState[coordsToStateIndex(rowX + 3, rowY + 3)] - '0';
+            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) getPlayerAt(owner1 - 1);
+
+            // Check right line
+            owner1 = gameState[coordsToStateIndex(rowX + 3, rowY)] - '0';
+            owner2 = gameState[coordsToStateIndex(rowX + 3, rowY + 1)] - '0';
+            owner3 = gameState[coordsToStateIndex(rowX + 3, rowY + 2)] - '0';
+            owner4 = gameState[coordsToStateIndex(rowX + 3, rowY + 3)] - '0';
+            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) getPlayerAt(owner1 - 1);
+            
+            // Check up diagonal
+            owner1 = gameState[coordsToStateIndex(rowX, rowY + 3)] - '0';
+            owner2 = gameState[coordsToStateIndex(rowX + 1, rowY + 2)] - '0';
+            owner3 = gameState[coordsToStateIndex(rowX + 2, rowY + 1)] - '0';
+            owner4 = gameState[coordsToStateIndex(rowX + 3, rowY)] - '0';
+            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) getPlayerAt(owner1 - 1);
+        }
+    }
+
     return nullptr;
 }
 
@@ -313,22 +388,19 @@ std::string ConnectFour::getBestMove()
 {
     std::string gameState = stateString();
     std::vector<std::string> moves = generateMoves(gameState, AI_PLAYER);
-    std::string bestMove = initialStateString();
+    std::string bestMove = moves.at(0);
     int bestEvaluation = -2;
 
     for (auto const & move : moves) 
     {
-        int evaluation = -negamax(move, 12, HUMAN_PLAYER);
-
-        Logger &logger = Logger::GetInstance();
-        logger.Info("Checking move: " + move + " Evaluation: " + std::to_string(evaluation));
+        int evaluation = -negamax(move, 3, HUMAN_PLAYER);
+        //logger.Info("Checking move: " + move + " Evaluation: " + std::to_string(evaluation));
 
         if (evaluation > bestEvaluation) 
         {
             bestMove = move;
             bestEvaluation = evaluation;
-
-            logger.Event("Chose a new best move: " + bestMove + " Evaluation: " + std::to_string(bestEvaluation));
+            logger.Event("AI chose a new best move: " + bestMove + " Evaluation: " + std::to_string(bestEvaluation));
         }
     }
 
@@ -341,40 +413,29 @@ std::string ConnectFour::getBestMove()
 void ConnectFour::updateAI()
 {
     if (_gameOptions.gameOver) return;
-    if (_gameOptions.AIPlaying) return;
-    else
+
+    std::string bestMove = getBestMove();
+    logger.Info("Best AI move: " + bestMove);
+
+    std::string gameState = stateString();
+    for (size_t i = 0; i < gameState.length(); i++)
     {
-        _gameOptions.AIPlaying = true;
-
-        std::string bestMove = getBestMove();
-
-        Logger &logger = Logger::GetInstance();
-        logger.Info("Best AI move: " + bestMove);
-
-        std::string gameState = stateString();
-        for (size_t i = 0; i < gameState.length(); i++)
+        if (gameState[i] != bestMove[i])
         {
-            if (gameState[i] != bestMove[i])
+            // Place correct piece in this spot
+            int rowX = i / ROWY;
+            int rowY = findLowestOpenSquareY(rowX);
+            ChessSquare *square  = _grid->getSquare(rowX, rowY);
+
+            if (actionForEmptyHolder(*square))
             {
-                // Place correct piece in this spot
-                int rowX = i % 7;
-                int rowY = findLowestOpenSquareY(rowX);
-                ChessSquare *square  = _grid->getSquare(rowX, rowY);
-
-                if (actionForEmptyHolder(*square)) 
-                {
-                    _gameOptions.AIPlaying = false;
-                    endTurn();
-                    logger.Event("AI placed a piece at (" + std::to_string(rowX) + ", " + std::to_string(rowY) + ")");
-
-                }
-                else
-                {
-                    logger.Error("updateAI(): Failed to place piece at (" + std::to_string(rowX) + ", " + std::to_string(rowY) + ")");
-                }
-                
-                return;
             }
+            else
+            {
+                logger.Error("updateAI(): Failed to place piece at (" + std::to_string(rowX) + ", " + std::to_string(rowY) + ")");
+            }
+            
+            break;
         }
     }
 }
