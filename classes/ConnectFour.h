@@ -38,17 +38,17 @@ private:
     static const int HUMAN_PLAYER = 0;
     static const int YELLOW_PLAYER = 0; // Yellow goes first in Connect Four
     static const int RED_PLAYER = 1;
+    static const int TRIPLE_MULT = 5; // Multiplier used for lines of three pieces
     static const int MAX_VALUE = 1000;
 
     // Helper methods
     Bit*        createPiece(int pieceType);     
-    int         findLowestOpenSquareY(int x);
-    int         findLowestOpenSquareYByGameState(std::string gameState, int x);
+    int         findLowestOpenSquareY(std::string gameState, int x);
     int         coordsToStateIndex(int x, int y);
     int         scoreOfLine(const int *owners, int playerNumber);
     int         calculateScore(std::string gameState, int playerNumber);
     bool        ownersAreTheSame(Player *owner1, Player *owner2, Player *owner3, Player *owner4);
-    bool        ownerNumbersAreTheSame(int owner1, int owner2, int owner3, int owner4);
+    bool        ownerNumbersAreTheSame(const int *owners);
     Player*     ownerAt(int x, int y);
 
     // Board representation

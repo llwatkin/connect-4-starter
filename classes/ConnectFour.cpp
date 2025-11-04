@@ -35,19 +35,7 @@ Player* ConnectFour::ownerAt(int x, int y)
 //
 // Finds the lowest open space in the given row and returns its Y index
 //
-int ConnectFour::findLowestOpenSquareY(int x)
-{
-    int lowestY = 0;
-    
-    while (lowestY < ROWY - 1) {
-        lowestY++;
-        if (ownerAt(x, lowestY) != nullptr) return lowestY - 1;
-    }
-
-    return lowestY;
-}
-
-int ConnectFour::findLowestOpenSquareYByGameState(std::string gameState, int x)
+int ConnectFour::findLowestOpenSquareY(std::string gameState, int x)
 {
     int lowestY = 0;
     
@@ -86,11 +74,11 @@ bool ConnectFour::ownersAreTheSame(Player *owner1, Player *owner2, Player *owner
     return false;
 }
 
-bool ConnectFour::ownerNumbersAreTheSame(int owner1, int owner2, int owner3, int owner4)
+bool ConnectFour::ownerNumbersAreTheSame(const int *owners)
 {
-    if (owner1 != 0 && owner2 != 0 && owner3 != 0 && owner4 != 0)
+    if (owners[0] != 0 && owners[1] != 0 && owners[2] != 0 && owners[3] != 0)
     {
-        if (owner1 == owner2 && owner2 == owner3 && owner3 == owner4) 
+        if (owners[0] == owners[1] && owners[1] == owners[2] && owners[2] == owners[3]) 
         {
             return true;
         }
@@ -103,7 +91,7 @@ bool ConnectFour::ownerNumbersAreTheSame(int owner1, int owner2, int owner3, int
 // Check all possible win conditions and return the winning player if there is one
 //
 Player* ConnectFour::checkForWinner() 
-{
+{   
     Player *owner1 = nullptr;
     Player *owner2 = nullptr;
     Player *owner3 = nullptr;
@@ -219,10 +207,7 @@ void ConnectFour::setStateString(const std::string &s)
 bool ConnectFour::actionForEmptyHolder(BitHolder &holder)
 {
     if (_gameOptions.gameOver) return false;
-    if (holder.bit()) {
-        logger.Error("Holder already has a bit in it");
-        return false;
-    }
+    if (holder.bit()) return false;
     ChessSquare *clickedSquare = dynamic_cast<ChessSquare*>(&holder);
     if (!clickedSquare) return false;
 
@@ -232,7 +217,7 @@ bool ConnectFour::actionForEmptyHolder(BitHolder &holder)
     
     if (bit) {
         int rowX = clickedSquare->getColumn();
-        int rowY = findLowestOpenSquareY(rowX);
+        int rowY = findLowestOpenSquareY(stateString(), rowX);
         ChessSquare *lowestSquareDown = _grid->getSquare(rowX, rowY);
         lowestSquareDown->setBit(bit);
         ImVec2 pos = lowestSquareDown->getPosition();
@@ -278,18 +263,18 @@ std::vector<std::string> ConnectFour::generateMoves(std::string gameState, int p
 {
 	// Return state strings for every possible move from the current player's perspective
     std::vector<std::string> moves;
-    logger.Info("Generating moves from gameState " + gameState + " for Player " + std::to_string(playerNumber));
+    //logger.Info("Generating moves from gameState " + gameState + " for Player " + std::to_string(playerNumber));
 
     for (int rowX = 0; rowX < ROWX; rowX++)
     {
         if (gameState[coordsToStateIndex(rowX, 0)] == '0')
         {
-            int lowestY = findLowestOpenSquareYByGameState(gameState, rowX);
+            int lowestY = findLowestOpenSquareY(gameState, rowX);
             std::string move = gameState;
             int moveIndex = coordsToStateIndex(rowX, lowestY);
             move[moveIndex] = '1' + playerNumber;
             moves.push_back(move);
-            logger.Warn("Possible move for Player " + std::to_string(playerNumber) + ": " + move);
+            //logger.Warn("Possible move for Player " + std::to_string(playerNumber) + ": " + move);
         }
     }
     
@@ -306,10 +291,7 @@ int ConnectFour::coordsToStateIndex(int x, int y)
 //
 Player* ConnectFour::checkForWinnerWithGameState(std::string gameState)
 {
-    int owner1 = 0;
-    int owner2 = 0;
-    int owner3 = 0;
-    int owner4 = 0;
+    int owners[4] = { 0, 0, 0, 0 };
 
     // Check for winner by looking through 4x4 boxes
     for (int rowX = 0; rowX < ROWX - 3; rowX++)
@@ -317,46 +299,46 @@ Player* ConnectFour::checkForWinnerWithGameState(std::string gameState)
         for (int rowY = 0; rowY < ROWY - 3; rowY++)
         {
             // Check top line
-            owner1 = gameState[coordsToStateIndex(rowX, rowY)] - '0';
-            owner2 = gameState[coordsToStateIndex(rowX + 1, rowY)] - '0';
-            owner3 = gameState[coordsToStateIndex(rowX + 2, rowY)] - '0';
-            owner4 = gameState[coordsToStateIndex(rowX + 3, rowY)] - '0';
-            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) return getPlayerAt(owner1 - 1);
+            owners[0] = gameState[coordsToStateIndex(rowX, rowY)] - '0';
+            owners[1] = gameState[coordsToStateIndex(rowX + 1, rowY)] - '0';
+            owners[2] = gameState[coordsToStateIndex(rowX + 2, rowY)] - '0';
+            owners[3] = gameState[coordsToStateIndex(rowX + 3, rowY)] - '0';
+            if (ownerNumbersAreTheSame(owners)) return getPlayerAt(owners[0] - 1);
 
             // Check left line
-            owner1 = gameState[coordsToStateIndex(rowX, rowY)] - '0';
-            owner2 = gameState[coordsToStateIndex(rowX, rowY + 1)] - '0';
-            owner3 = gameState[coordsToStateIndex(rowX, rowY + 2)] - '0';
-            owner4 = gameState[coordsToStateIndex(rowX, rowY + 3)] - '0';
-            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) return getPlayerAt(owner1 - 1);
+            owners[0] = gameState[coordsToStateIndex(rowX, rowY)] - '0';
+            owners[1] = gameState[coordsToStateIndex(rowX, rowY + 1)] - '0';
+            owners[2] = gameState[coordsToStateIndex(rowX, rowY + 2)] - '0';
+            owners[3] = gameState[coordsToStateIndex(rowX, rowY + 3)] - '0';
+            if (ownerNumbersAreTheSame(owners)) return getPlayerAt(owners[0] - 1);
 
             // Check down diagonal
-            owner1 = gameState[coordsToStateIndex(rowX, rowY)] - '0';
-            owner2 = gameState[coordsToStateIndex(rowX + 1, rowY + 1)] - '0';
-            owner3 = gameState[coordsToStateIndex(rowX + 2, rowY + 2)] - '0';
-            owner4 = gameState[coordsToStateIndex(rowX + 3, rowY + 3)] - '0';
-            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) return getPlayerAt(owner1 - 1);
+            owners[0] = gameState[coordsToStateIndex(rowX, rowY)] - '0';
+            owners[1] = gameState[coordsToStateIndex(rowX + 1, rowY + 1)] - '0';
+            owners[2] = gameState[coordsToStateIndex(rowX + 2, rowY + 2)] - '0';
+            owners[3] = gameState[coordsToStateIndex(rowX + 3, rowY + 3)] - '0';
+            if (ownerNumbersAreTheSame(owners)) return getPlayerAt(owners[0] - 1);
 
             // Check bottom line
-            owner1 = gameState[coordsToStateIndex(rowX, rowY + 3)] - '0';
-            owner2 = gameState[coordsToStateIndex(rowX + 1, rowY + 3)] - '0';
-            owner3 = gameState[coordsToStateIndex(rowX + 2, rowY + 3)] - '0';
-            owner4 = gameState[coordsToStateIndex(rowX + 3, rowY + 3)] - '0';
-            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) return getPlayerAt(owner1 - 1);
+            owners[0] = gameState[coordsToStateIndex(rowX, rowY + 3)] - '0';
+            owners[1] = gameState[coordsToStateIndex(rowX + 1, rowY + 3)] - '0';
+            owners[2] = gameState[coordsToStateIndex(rowX + 2, rowY + 3)] - '0';
+            owners[3] = gameState[coordsToStateIndex(rowX + 3, rowY + 3)] - '0';
+            if (ownerNumbersAreTheSame(owners)) return getPlayerAt(owners[0] - 1);
 
             // Check right line
-            owner1 = gameState[coordsToStateIndex(rowX + 3, rowY)] - '0';
-            owner2 = gameState[coordsToStateIndex(rowX + 3, rowY + 1)] - '0';
-            owner3 = gameState[coordsToStateIndex(rowX + 3, rowY + 2)] - '0';
-            owner4 = gameState[coordsToStateIndex(rowX + 3, rowY + 3)] - '0';
-            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) return getPlayerAt(owner1 - 1);
+            owners[0] = gameState[coordsToStateIndex(rowX + 3, rowY)] - '0';
+            owners[1] = gameState[coordsToStateIndex(rowX + 3, rowY + 1)] - '0';
+            owners[2] = gameState[coordsToStateIndex(rowX + 3, rowY + 2)] - '0';
+            owners[3] = gameState[coordsToStateIndex(rowX + 3, rowY + 3)] - '0';
+            if (ownerNumbersAreTheSame(owners)) return getPlayerAt(owners[0] - 1);
             
             // Check up diagonal
-            owner1 = gameState[coordsToStateIndex(rowX, rowY + 3)] - '0';
-            owner2 = gameState[coordsToStateIndex(rowX + 1, rowY + 2)] - '0';
-            owner3 = gameState[coordsToStateIndex(rowX + 2, rowY + 1)] - '0';
-            owner4 = gameState[coordsToStateIndex(rowX + 3, rowY)] - '0';
-            if (ownerNumbersAreTheSame(owner1, owner2, owner3, owner4)) return getPlayerAt(owner1 - 1);
+            owners[0] = gameState[coordsToStateIndex(rowX, rowY + 3)] - '0';
+            owners[1] = gameState[coordsToStateIndex(rowX + 1, rowY + 2)] - '0';
+            owners[2] = gameState[coordsToStateIndex(rowX + 2, rowY + 1)] - '0';
+            owners[3] = gameState[coordsToStateIndex(rowX + 3, rowY)] - '0';
+            if (ownerNumbersAreTheSame(owners)) return getPlayerAt(owners[0] - 1);
         }
     }
 
@@ -377,7 +359,7 @@ int ConnectFour::scoreOfLine(const int *owners, int playerNumber)
         }
     }
     if (score == 1) score = 0;
-    if (score == 3) score *= 5;
+    if (score == 3) score *= TRIPLE_MULT;
 
     return score;
 }
@@ -452,7 +434,7 @@ int ConnectFour::evaluate(std::string gameState, int playerNumber)
 
     if (winner)
     {
-        logger.Info("Player " + std::to_string(winner->playerNumber()) + " wins in gameState " + gameState);
+        //logger.Info("Player " + std::to_string(winner->playerNumber()) + " wins in gameState " + gameState);
         int winnerNumber = winner->playerNumber();
         if (winnerNumber == playerNumber) return MAX_VALUE;
         else return -MAX_VALUE;
@@ -475,7 +457,7 @@ int ConnectFour::negamax(std::string gameState, int depth, int playerNumber, int
 	if (depth == 0 || checkForWinnerWithGameState(gameState)) 
     {
         int eval = evaluate(gameState, playerNumber);
-        logger.Info("Reached end of negamax with gameState " + gameState + ". Evaluation = " + std::to_string(eval));
+        //logger.Info("Reached end of negamax with gameState " + gameState + ". Evaluation = " + std::to_string(eval));
         return eval;
     }
     std::vector<std::string> moves = generateMoves(gameState, playerNumber);
@@ -504,14 +486,14 @@ std::string ConnectFour::getBestMove()
 
     for (auto const & move : moves) 
     {
-        int evaluation = -negamax(move, 1, HUMAN_PLAYER, -MAX_VALUE, MAX_VALUE);
-        logger.Event("Checking move: " + move + " Evaluation: " + std::to_string(evaluation));
+        int evaluation = -negamax(move, 4, HUMAN_PLAYER, -MAX_VALUE, MAX_VALUE);
+        //logger.Event("Checking move: " + move + " Evaluation: " + std::to_string(evaluation));
 
         if (evaluation > bestEvaluation) 
         {
             bestMove = move;
             bestEvaluation = evaluation;
-            logger.Event("AI chose a new best move: " + bestMove + " Evaluation: " + std::to_string(bestEvaluation));
+            //logger.Event("AI chose a new best move: " + bestMove + " Evaluation: " + std::to_string(bestEvaluation));
         }
     }
 
@@ -526,7 +508,7 @@ void ConnectFour::updateAI()
     if (_gameOptions.gameOver) return;
 
     std::string bestMove = getBestMove();
-    logger.Info("Best AI move: " + bestMove);
+    //logger.Info("Best AI move: " + bestMove);
 
     std::string gameState = stateString();
     for (size_t i = 0; i < gameState.length(); i++)
@@ -535,7 +517,7 @@ void ConnectFour::updateAI()
         {
             // Place correct piece in this spot
             int rowX = i / ROWY;
-            int rowY = findLowestOpenSquareY(rowX);
+            int rowY = findLowestOpenSquareY(gameState, rowX);
             ChessSquare *square  = _grid->getSquare(rowX, rowY);
 
             if (actionForEmptyHolder(*square))

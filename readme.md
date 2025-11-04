@@ -1,11 +1,7 @@
-Using the provided code that can be downloaded from this github add a new class that inherits from game.cpp in the same way TicTacToe.cpp does and implement a working version of the game Connect 4. The game should be added as a fourth choice from the menu so the choices are Tic Tac Toe, Checkers, Othello and now Connect 4.
+# Connect Four AI
 
-The game must be playable by both by 2 people and vs. an AI. Your implementation must check for the winning condition, and display that on the right hand side the same way the current setup does for tic-tac-toe. The stopGame() method is expected to clean up and delete any memory allocated.
+Base classes needed to create Connect Four have been provided for me. I added my logger from the previous assignment to help me test and debug. I worked on Windows.
 
-Look at the new Grid.cpp class and see how it is used in Checkers.cpp for a good understanding about laying out a useable grid.
+## Creating Connect Four with Negamax AI
 
-For extra credit, when a game piece is added to the board, make it animate into place instead of just appearing in it's final spot.
-
-Graphic files are provided for the game pieces called yellow.png and red.png.
-
-For the submission, create a new github based on the above code-base and provide a link to that along with a complete readme.md on how your implementation works.
+I set up the Connect Four board and piece placement first, making sure to send pieces to the lowest available space in whatever column a player clicks in. I made a function called findLowestSquareY() to do just that. After that, I implemented win/draw detection. To detect wins, I wrote a function to move through the board in 4x4 chunks, checking the sides and diagonals of each chunk as I go. With that working, I pulled over some of the functions I used for my Tic Tac Toe AI like generateMoves(), negamax(), getBestMove(), updateAI() and evaluate(). I had to rewrite the move generation to only generate moves at the bottom of each respective column, add alpha-beta pruning to negamax, and add extra score calculation to the evaluate function, as I could no longer rely on terminal game states alone. I wrote the functions calculateScore() and scoreOfLine(), which are used to go through all connected pieces in the board and count how many possible lines of pieces there are from each player's perspective, assigning a score to them. For example, a line of two pieces (of the same color) and two open spaces would be worth two points, and a line of three pieces and an open space would be worth 15. A single piece or a line that is broken up by the other player are worth no points. The multiplier I used for lines of three pieces is somewhat arbitrary, but prevents the AI from prematurely blocking lines of two when perhaps it shouldn't be so concerned.
